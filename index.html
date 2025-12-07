@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Viksit Bihar 2030: Strategic Sector Analysis</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f8fafc; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+
+        /* Chart Container Strategy as per requirements */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 100%;
+            height: 320px; /* Increased slightly for better view */
+            margin: 0 auto;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .sector-card-active {
+            border-color: #06b6d4; /* Cyan-500 */
+            background-color: #f0fdfa; /* Cyan-50 */
+            box-shadow: 0 4px 6px -1px rgba(6, 182, 212, 0.1), 0 2px 4px -2px rgba(6, 182, 212, 0.1);
+        }
+    </style>
+    <!-- Chosen Palette: "Modern Progress" - Clean White/Slate background (bg-slate-50), Primary Action Color (Cyan/Teal), Accent (Blue). -->
+    <!-- Application Structure Plan: 
+         1. Header: Project Title and Context.
+         2. Executive Dashboard: High-level comparison of all 6 sectors (2025 Status vs 2030 Projection). ADDED: Two-sector comparison filter.
+         3. Sector Navigator: A card-based navigation to switch between the 6 distinct sectors.
+         4. Deep Dive View (Dynamic): 
+            - Overview & Key Stats (Cards)
+            - 15-Year Trajectory (Line Chart)
+            - 2030 Forecast (Bar/Area Chart)
+            - Qualitative Analysis (Strengths/Challenges Grid)
+            - LLM Feature: Policy Brief Generator.
+            - LLM Feature: Audio Pitch Generator.
+         5. Conclusions & Recommendations: Interactive accordion for final synthesis.
+         Rationale: The structure is retained but the visual hierarchy is improved using the new, modern color palette and enhanced card styling. The 6th sector is integrated directly into the existing flow. -->
+    <!-- Visualization & Content Choices:
+         - Main Dashboard: Grouped Bar Chart to compare growth rates across 6 sectors. Updated to be dynamic based on selector inputs.
+         - Sector Deep Dive: Mixed charts. Line chart for historical trends (2010-2025). 
+         - Stats Cards: For immediate "Current Status 2025" KPIs using dark background for contrast.
+         - LLM Integration (Text): Button triggers Gemini API (gemini-2.5-flash-preview-09-2025) with Google Search grounding to create contextual policy drafts.
+         - LLM Integration (Audio): Button triggers Gemini API (gemini-2.5-flash-preview-tts) to create an audio investment pitch.
+         - NO SVG/Mermaid used. Unicode icons used for visual anchors. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased selection:bg-cyan-200">
+
+    <!-- Header Section -->
+    <header class="bg-white shadow-lg border-b border-slate-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-bold text-slate-900 tracking-tight">📍 Viksit Bihar <span class="text-cyan-600">2030</span></h1>
+                <p class="text-sm text-slate-500 hidden sm:block">Strategic Sectoral Growth Analysis & Future Roadmap</p>
+            </div>
+            <button onclick="resetView()" class="text-sm font-medium text-cyan-600 hover:text-cyan-700 transition-colors">
+                🏠 Dashboard
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-12">
+
+        <!-- Intro Context -->
+        <section id="intro" class="text-center max-w-4xl mx-auto">
+            <h2 class="text-3xl font-extrabold text-slate-800 mb-4">From Resurgence to Leadership: Six Core Pillars</h2>
+            <p class="text-lg text-slate-600 leading-relaxed">
+                Analyzing the trajectory of Bihar's economic landscape from 2010 to 2030. 
+                This interactive report covers the foundational progress and projects the next 5 years of exponential growth across six critical sectors, including the vital addition of Renewable Energy.
+            </p>
+        </section>
+
+        <!-- Navigation / Sector Selector -->
+        <nav id="sector-nav" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+            <!-- Buttons injected by JS -->
+        </nav>
+
+        <!-- DYNAMIC CONTENT AREA -->
+        <div id="content-area" class="min-h-[600px]">
+            <!-- Dashboard View (Default) -->
+            <div id="dashboard-view" class="space-y-8 fade-in">
+                
+                <!-- Dashboard Intro -->
+                <div class="bg-white p-6 rounded-xl shadow-lg border border-slate-100">
+                    <h3 class="text-xl font-bold text-slate-800 mb-2">📊 Executive Summary & Comparison Tool</h3>
+                    <p class="text-slate-600">
+                        Use the filters below to compare the projected market size (2025 vs 2030) for any two sectors side-by-side. All figures are estimates in ₹ Crores, except for Renewable Energy (RE) which is measured in MW.
+                    </p>
+                </div>
+
+                <!-- Comparison Controls -->
+                <div class="flex flex-col md:flex-row gap-4 bg-white p-6 rounded-xl shadow-lg border border-slate-100">
+                    <div class="flex-1">
+                        <label for="sector-a" class="block text-sm font-medium text-slate-700 mb-1">Sector A (Primary Focus)</label>
+                        <select id="sector-a" onchange="updateComparisonChart()" class="w-full p-2 border border-slate-300 rounded-md bg-slate-50 focus:border-cyan-500 focus:ring focus:ring-cyan-500 focus:ring-opacity-50">
+                            <!-- Options injected by JS -->
+                        </select>
+                    </div>
+                    <div class="flex-1">
+                        <label for="sector-b" class="block text-sm font-medium text-slate-700 mb-1">Sector B (Comparison)</label>
+                        <select id="sector-b" onchange="updateComparisonChart()" class="w-full p-2 border border-slate-300 rounded-md bg-slate-50 focus:border-cyan-500 focus:ring focus:ring-cyan-500 focus:ring-opacity-50">
+                            <!-- Options injected by JS -->
+                        </select>
+                    </div>
+                </div>
+
+
+                <!-- Main Comparison Chart -->
+                <div class="bg-white p-6 rounded-xl shadow-lg border border-slate-100">
+                    <div class="flex justify-between items-end mb-6">
+                        <h4 class="text-lg font-semibold text-slate-700">Comparative Market Growth (2025 vs 2030)</h4>
+                        <div id="chart-unit" class="text-sm text-slate-500"></div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="mainComparisonChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Key Aggregate Metrics -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-cyan-50 p-6 rounded-xl border border-cyan-200">
+                        <div class="text-cyan-600 text-3xl mb-2">📈 12.1%</div>
+                        <div class="font-bold text-slate-800">Avg. GSDP Growth</div>
+                        <div class="text-sm text-slate-600">Projected CAGR (2025-2030)</div>
+                    </div>
+                    <div class="bg-blue-50 p-6 rounded-xl border border-blue-200">
+                        <div class="text-blue-600 text-3xl mb-2">🏭 60k Cr+</div>
+                        <div class="font-bold text-slate-800">New Investments</div>
+                        <div class="text-sm text-slate-600">Committed via Invest Bihar (2023-25)</div>
+                    </div>
+                    <div class="bg-emerald-50 p-6 rounded-xl border border-emerald-200">
+                        <div class="text-emerald-600 text-3xl mb-2">⚡ 3.5 GW</div>
+                        <div class="font-bold text-slate-800">Renewable Capacity</div>
+                        <div class="text-sm text-slate-600">Target by 2030 (Solar/Hydro)</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sector Specific View (Hidden by default, populated by JS) -->
+            <div id="sector-view" class="hidden space-y-8 fade-in">
+                <!-- 1. Header & Overview -->
+                <div class="bg-white p-6 md:p-8 rounded-xl shadow-lg border border-slate-100 flex flex-col md:flex-row gap-8 items-start">
+                    <div class="flex-1">
+                        <h2 id="sv-title" class="text-3xl font-bold text-slate-800 mb-2"></h2>
+                        <span id="sv-tag" class="inline-block px-3 py-1 bg-cyan-100 text-cyan-800 rounded-full text-xs font-semibold mb-4 tracking-wide">CORE SECTOR ANALYSIS</span>
+                        <p id="sv-desc" class="text-slate-600 text-lg leading-relaxed"></p>
+                    </div>
+                    <div class="w-full md:w-1/3 bg-slate-50 rounded-lg p-4 border border-slate-200">
+                        <h4 class="font-bold text-slate-700 mb-3 border-b pb-2">🚀 Quick Highlights</h4>
+                        <ul id="sv-highlights" class="space-y-2 text-sm text-slate-600">
+                            <!-- List items -->
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- 2. Historical & Future Stats (Grid) -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Historical Timeline -->
+                    <div class="bg-white p-6 rounded-xl shadow-lg border border-slate-100">
+                        <h3 class="text-lg font-bold text-slate-800 mb-4">📅 15-Year Progress (2010-2025)</h3>
+                        <div class="chart-container h-64">
+                            <canvas id="historicalChart"></canvas>
+                        </div>
+                        <div id="sv-history-text" class="mt-4 text-sm text-slate-600 bg-slate-50 p-3 rounded">
+                            <!-- Context text -->
+                        </div>
+                    </div>
+
+                    <!-- Future Projection -->
+                    <div class="bg-white p-6 rounded-xl shadow-lg border border-slate-100 border-l-4 border-l-cyan-500">
+                        <h3 class="text-lg font-bold text-slate-800 mb-4">🔭 2030 Projection & Targets</h3>
+                        <div class="chart-container h-64">
+                            <canvas id="projectionChart"></canvas>
+                        </div>
+                        <div id="sv-projection-text" class="mt-4 text-sm text-slate-600 bg-cyan-50 p-3 rounded">
+                            <!-- Context text -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Current Status & SWOT Grid -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Status Card -->
+                    <div class="lg:col-span-1 bg-slate-900 text-white p-6 rounded-xl shadow-2xl">
+                        <h3 class="text-xl font-bold mb-6 flex items-center gap-2">
+                            <span>📍 Status 2025</span>
+                        </h3>
+                        <div id="sv-stats-grid" class="space-y-6">
+                            <!-- Dynamic Stat items -->
+                        </div>
+                    </div>
+
+                    <!-- Analysis Content -->
+                    <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg border border-slate-100">
+                        <h3 class="text-lg font-bold text-slate-800 mb-4">🔎 Strategic Analysis</h3>
+                        <div class="grid md:grid-cols-2 gap-6">
+                            <div>
+                                <h4 class="font-semibold text-emerald-700 mb-2">Key Drivers & Strengths</h4>
+                                <ul id="sv-drivers" class="list-disc list-inside text-sm text-slate-600 space-y-2 marker:text-emerald-500"></ul>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-red-700 mb-2">Challenges & Gaps</h4>
+                                <ul id="sv-challenges" class="list-disc list-inside text-sm text-slate-600 space-y-2 marker:text-red-500"></ul>
+                            </div>
+                        </div>
+                        <div class="mt-6 pt-6 border-t border-slate-100">
+                            <h4 class="font-semibold text-slate-800 mb-2">💡 Recommendations for 2030</h4>
+                            <p id="sv-recommendation" class="text-sm text-slate-600 italic"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. LLM Powered Feature (UPDATED) -->
+                <div class="mt-8 pt-6 border-t border-slate-200 bg-white p-6 rounded-xl shadow-lg">
+                    <h3 class="text-xl font-bold text-slate-800 mb-4">✨ Policy & Investment Tools</h3>
+                    <p class="text-slate-600 mb-6">Use Generative AI for drafting formal policy briefs and generating concise audio investment pitches for the selected sector.</p>
+                    
+                    <!-- Policy Brief Generator (Existing) -->
+                    <div class="mb-6 border-b pb-4 border-slate-100">
+                        <h4 class="font-semibold text-slate-700 mb-2">Policy Brief Draft (Text & Search Grounding)</h4>
+                        <button onclick="generatePolicyBrief()" id="policy-brief-button" class="bg-cyan-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-cyan-700 transition-colors shadow-md disabled:bg-cyan-400 flex items-center gap-2">
+                            <span id="brief-spinner" class="hidden h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                            <span id="brief-text">✨ Draft Policy Brief for 2030</span>
+                        </button>
+                    </div>
+
+                    <!-- Audio Pitch Generator (NEW) -->
+                    <div>
+                        <h4 class="font-semibold text-slate-700 mb-2">Investment Pitch (TTS Audio)</h4>
+                        <button onclick="generateAudioPitch()" id="audio-pitch-button" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-md disabled:bg-blue-400 flex items-center gap-2">
+                            <span id="audio-spinner" class="hidden h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                            <span id="audio-text">✨ Generate Audio Pitch (30s)</span>
+                        </button>
+                        <audio id="audio-player" class="mt-4 w-full hidden" controls></audio>
+                        <div id="audio-error" class="text-red-600 text-sm mt-2 hidden"></div>
+                    </div>
+
+                    <div id="policy-brief-output" class="mt-6 p-4 bg-slate-50 border border-slate-200 rounded-lg hidden">
+                        <h4 class="font-bold text-slate-800 mb-2">Generated Policy Draft:</h4>
+                        <div id="brief-content" class="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap"></div>
+                        <div id="brief-sources" class="mt-4 pt-3 border-t border-slate-200 text-xs text-slate-500 hidden">
+                            <p class="font-semibold">Sources:</p>
+                            <ul id="source-list" class="list-disc list-inside ml-4 space-y-1"></ul>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Conclusion Section -->
+        <section id="conclusion" class="bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-2xl p-8 md:p-12 text-center shadow-lg">
+            <h2 class="text-2xl md:text-3xl font-bold mb-4">The Road Ahead: Integrated Growth</h2>
+            <p class="text-slate-300 max-w-3xl mx-auto mb-8 text-lg">
+                To achieve the vision of a "Viksit Bihar" by 2030, a synergy between policy stability, private investment, and skill development is paramount. The next 5 years are not just about growth, but about sustainable transformation.
+            </p>
+            <div class="grid grid-cols-2 md:grid-cols-6 gap-4 text-left max-w-5xl mx-auto">
+                <div class="md:col-span-2 bg-white/10 p-4 rounded backdrop-blur-sm">
+                    <div class="font-bold text-cyan-400 mb-1">Policy & Governance</div>
+                    <div class="text-xs text-slate-300">Maintain single-window clearance stability and implement outcome-based monitoring.</div>
+                </div>
+                <div class="bg-white/10 p-4 rounded backdrop-blur-sm">
+                    <div class="font-bold text-cyan-400 mb-1">Infrastructure</div>
+                    <div class="text-xs text-slate-300">Complete expressway grid and operationalize 3 new logistics parks.</div>
+                </div>
+                <div class="bg-white/10 p-4 rounded backdrop-blur-sm">
+                    <div class="font-bold text-cyan-400 mb-1">Skilling</div>
+                    <div class="text-xs text-slate-300">Align university curriculum with Industry 4.0 needs (AI, Agro-tech).</div>
+                </div>
+                <div class="bg-white/10 p-4 rounded backdrop-blur-sm">
+                    <div class="font-bold text-cyan-400 mb-1">Energy</div>
+                    <div class="text-xs text-slate-300">Achieve 3.5 GW RE capacity and promote decentralized solar solutions.</div>
+                </div>
+                <div class="bg-white/10 p-4 rounded backdrop-blur-sm">
+                    <div class="font-bold text-cyan-400 mb-1">Branding</div>
+                    <div class="text-xs text-slate-300">Promote 'Brand Bihar' globally for exports (Makhana, Textile, IT).</div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-8 mt-12">
+        <div class="max-w-7xl mx-auto px-4 text-center text-slate-400 text-sm">
+            <p>&copy; 2025 Viksit Bihar Research Initiative. Simulated Report Data. (UI Updated)</p>
+        </div>
+    </footer>
+
+    <!-- LOGIC SCRIPT -->
+    <script>
+        // --- GEMINI API CONFIG ---
+        const API_KEY = "";
+        const BASE_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${API_KEY}`;
+        
+        let currentSectorId = null;
+
+        // --- DATA STORE (Updated with 6th sector) ---
+        const sectors = [
+            {
+                id: 'fmcg',
+                icon: '🌽',
+                name: 'FMCG & Agriculture',
+                desc: 'Bihar is transitioning from a raw material producer to a processing powerhouse. With global leadership in Makhana (90% share) and rising Maize production, the focus is on value addition.',
+                unit: '₹ Cr',
+                history: {
+                    labels: ['2010', '2015', '2020', '2025'],
+                    data: [12000, 18000, 28000, 45000], // Market size in Cr
+                    text: 'From 2010-2025, the sector saw a shift from unorganized farming to organized processing. The 2022 Ethanol Policy was a watershed moment, attracting major investments.'
+                },
+                projection: {
+                    labels: ['2025', '2026', '2027', '2028', '2029', '2030'],
+                    data: [45000, 52000, 60000, 69000, 78000, 90000],
+                    text: 'By 2030, the aim is to double the processing capacity. Key drivers: GI Tag monetization and export-oriented units (EOUs).'
+                },
+                highlights: ['Ethanol Production Hub', 'Makhana & Maize Exports', 'Mega Food Parks'],
+                stats: [
+                    { label: 'Food Parks', value: '12 Operational' },
+                    { label: 'Processing Share', value: '18% of Produce' },
+                    { label: 'Ethanol Capacity', value: '45 Cr Litres' }
+                ],
+                drivers: ['Abundant raw material base', 'Cheap labor availability', 'Govt subsidies on food processing units'],
+                challenges: ['Cold chain infrastructure gaps', 'Brand visibility in global markets', 'Quality standardization'],
+                recommendation: 'Establish dedicated export zones for Makhana and Litchi with integrated cold chains. Invite global FMCG giants for contract farming.'
+            },
+            {
+                id: 'healthcare',
+                icon: '🏥',
+                name: 'Healthcare',
+                desc: 'The last decade saw the democratization of specialized care. The establishment of AIIMS Patna and new medical colleges has reduced the patient outflow to other states.',
+                unit: '₹ Cr',
+                history: {
+                    labels: ['2010', '2015', '2020', '2025'],
+                    data: [2500, 4000, 8500, 15000], // Investment/Value proxy
+                    text: '2010-2020 focused on primary care centers. Post-Covid (2020-2025) saw aggressive private investment in super-specialty hospitals in Patna and Muzaffarpur.'
+                },
+                projection: {
+                    labels: ['2025', '2026', '2027', '2028', '2029', '2030'],
+                    data: [15000, 18000, 22000, 27000, 33000, 40000],
+                    text: '2025-2030 will focus on "Medical Tourism" for Nepal and neighboring states, and Digital Health adoption in rural areas.'
+                },
+                highlights: ['AIIMS & IGIMS Expansion', 'District Medical Colleges', 'PM-JAY Penetration'],
+                stats: [
+                    { label: 'Medical Colleges', value: '25+ (Govt+Pvt)' },
+                    { label: 'Bed Density', value: 'Improved by 40%' },
+                    { label: 'Insurance Cover', value: '75% Families' }
+                ],
+                drivers: ['High patient volume', 'Govt focus on medical education', 'Ayushman Bharat scheme utilization'],
+                challenges: ['Shortage of specialist doctors', 'Rural-Urban disparity', 'Maintenance of public facilities'],
+                recommendation: 'Incentivize private super-specialty chains to set up in Tier-2 cities (Gaya, Bhagalpur) via tax holidays.'
+            },
+            {
+                id: 'education',
+                icon: '🎓',
+                name: 'Education',
+                desc: 'Education is reclaiming its historical roots. With IIT, IIM, and NIFT fully operational, the focus has shifted to retaining talent and vocational skilling for the youth demographic.',
+                unit: 'Index/Rate %',
+                history: {
+                    labels: ['2010', '2015', '2020', '2025'],
+                    data: [45, 55, 62, 72], // Literacy Rate proxy or Budget share
+                    text: 'Literacy rates surged from 2010 to 2025. Key milestone: Cycle Yojana and Jeevika influence on female literacy.'
+                },
+                projection: {
+                    labels: ['2025', '2026', '2027', '2028', '2029', '2030'],
+                    data: [72, 75, 78, 82, 85, 88], // Target literacy/Index
+                    text: 'The next 5 years target 100% Gross Enrollment Ratio (GER) in secondary education and alignment with New Education Policy (NEP) 2020.'
+                },
+                highlights: ['Higher Ed Institutes', 'Girl Child Literacy', 'Skill Development Mission'],
+                stats: [
+                    { label: 'Universities', value: '35+' },
+                    { label: 'Literacy Rate', value: '~72% (Est)' },
+                    { label: 'Skill Centers', value: '500+ KYP Centers' }
+                ],
+                drivers: ['Youngest demographic in India', 'Demand for vocational training', 'Digital education penetration'],
+                challenges: ['Quality of teaching staff', 'Employability of graduates', 'Infrastructure in rural schools'],
+                recommendation: 'Focus on "Industry-Academia" partnerships. Create "Knowledge Cities" in Nalanda and Rajgir to attract international students.'
+            },
+            {
+                id: 'it',
+                icon: '💻',
+                name: 'IT & ITES',
+                desc: 'Bihar is the emerging underdog in IT. From near-zero presence in 2010, Patna is now home to TCS and numerous startups, driven by the "Ghar Wapsi" of tech talent post-pandemic.',
+                unit: '₹ Cr',
+                history: {
+                    labels: ['2010', '2015', '2020', '2025'],
+                    data: [100, 500, 2000, 6500], // Revenue/Jobs proxy
+                    text: 'The inflection point was 2022. The Startup Policy and availability of STPI parks facilitated the return of tech workforce.'
+                },
+                projection: {
+                    labels: ['2025', '2026', '2027', '2028', '2029', '2030'],
+                    data: [6500, 8500, 12000, 16000, 22000, 30000],
+                    text: 'Aggressive growth forecast. Aiming for 10,000+ startups and making Patna the IT hub of East India by 2030.'
+                },
+                highlights: ['Patna IT Park', 'Startup Policy 2022', 'BPO/BPM Hub'],
+                stats: [
+                    { label: 'Startups', value: '800+ Recognized' },
+                    { label: 'IT Parks', value: '4 Operational' },
+                    { label: 'Exports', value: '₹500 Cr+' }
+                ],
+                drivers: ['Low operational cost', 'High availability of engineering talent', 'Remote work culture'],
+                challenges: ['Perception/Brand image', 'High-speed internet stability in Tier-2', 'Lack of senior leadership talent'],
+                recommendation: 'Develop "Plug-and-Play" infrastructure in Tier-2 cities. Host annual global tech summits to rebrand the state.'
+            },
+            {
+                id: 'logistics',
+                icon: '🚚',
+                name: 'Logistics & Supply Chain',
+                desc: 'Strategically located as the gateway to North-East India and Nepal, Bihar is upgrading its connectivity via the PM Gati Shakti plan, expressways, and inland waterways.',
+                unit: '₹ Cr',
+                history: {
+                    labels: ['2010', '2015', '2020', '2025'],
+                    data: [2000, 5000, 12000, 25000], // Cargo handling/Infra value
+                    text: 'Massive road construction (2010-2020) laid the foundation. 2020-2025 saw the activation of river terminals and air cargo expansion.'
+                },
+                projection: {
+                    labels: ['2025', '2026', '2027', '2028', '2029', '2030'],
+                    data: [25000, 32000, 40000, 50000, 65000, 80000],
+                    text: '2030 Vision: Become the logistics capital of Eastern India, integrating Road, Rail, and Waterway for seamless export.'
+                },
+                highlights: ['Ganga Waterway (NW-1)', 'Bihta Logistics Hub', 'Expressway Grid'],
+                stats: [
+                    { label: 'Expressways', value: '4 Under constr.' },
+                    { label: 'Water Terminals', value: '3 (Kalughat etc)' },
+                    { label: 'Warehouse Area', value: '10M Sq.ft' }
+                ],
+                drivers: ['Strategic geography', 'E-commerce boom', 'River Ganga connectivity'],
+                challenges: ['Land acquisition delays', 'Last-mile connectivity in rural', 'Flooding risks'],
+                recommendation: 'Fast-track Multi-Modal Logistics Parks (MMLPs). Develop cold-chain logistics specifically for the agri-export zones.'
+            },
+             {
+                id: 're',
+                icon: '☀️',
+                name: 'Renewable Energy & RE',
+                desc: 'The newest growth pillar, focused on harnessing solar, mini-hydro, and biomass resources to achieve energy self-sufficiency and promote green industry.',
+                unit: 'MW',
+                history: {
+                    labels: ['2010', '2015', '2020', '2025'],
+                    data: [50, 250, 750, 1500], // Installed RE Capacity (MW)
+                    text: 'Initial focus (2010-2020) was on grid modernization. Post-2020, policy support accelerated utility-scale solar projects, especially floating solar on reservoirs.'
+                },
+                projection: {
+                    labels: ['2025', '2026', '2027', '2028', '2029', '2030'],
+                    data: [1500, 2000, 2500, 3000, 3500, 4200], // Target capacity (MW)
+                    text: 'Targeting 4.2 GW of cumulative RE capacity by 2030. Focus shifts to green hydrogen pilot projects and industrial green energy adoption.'
+                },
+                highlights: ['Solar Power Policy', 'Floating Solar Projects', 'Decentralized Microgrids'],
+                stats: [
+                    { label: 'Current Capacity', value: '1.5 GW' },
+                    { label: 'Floating Solar', value: '200 MW' },
+                    { label: 'Policy Goal', value: '10% Green Hydrogen' }
+                ],
+                drivers: ['Abundant river/reservoir area for floating solar', 'National Green Energy targets', 'Govt subsidies for rooftop solar'],
+                challenges: ['Land availability for large solar farms', 'Seasonal grid stability issues (monsoon)', 'Lack of local RE component manufacturing'],
+                recommendation: 'Launch a "Solar for Every Industrial Park" initiative, mandating RE adoption and building a supply chain for solar component assembly in the state.'
+            }
+        ];
+
+        // --- CHART INSTANCES ---
+        let mainChartInstance = null;
+        let histChartInstance = null;
+        let projChartInstance = null;
+
+        // --- INIT ---
+        document.addEventListener('DOMContentLoaded', () => {
+            renderNav();
+            populateSectorSelectors();
+            // Start with a default comparison (FMCG vs Healthcare)
+            document.getElementById('sector-a').value = 'fmcg';
+            document.getElementById('sector-b').value = 'healthcare';
+            updateComparisonChart(); 
+        });
+
+        // --- FUNCTIONS ---
+        
+        function populateSectorSelectors() {
+            const selectorA = document.getElementById('sector-a');
+            const selectorB = document.getElementById('sector-b');
+            
+            sectors.forEach(s => {
+                const optionA = document.createElement('option');
+                optionA.value = s.id;
+                optionA.textContent = `${s.icon} ${s.name} (${s.unit})`;
+                
+                const optionB = optionA.cloneNode(true);
+
+                selectorA.appendChild(optionA);
+                selectorB.appendChild(optionB);
+            });
+        }
+
+        function renderNav() {
+            const nav = document.getElementById('sector-nav');
+            // Adjusted grid to fit 6 items responsively
+            nav.innerHTML = sectors.map(s => `
+                <button onclick="loadSector('${s.id}')" 
+                    id="btn-${s.id}"
+                    class="sector-btn flex flex-col items-center justify-center p-4 bg-white border border-slate-200 rounded-xl hover:shadow-xl transition-all duration-300 group">
+                    <span class="text-3xl mb-2 group-hover:scale-110 transition-transform">${s.icon}</span>
+                    <span class="text-xs font-semibold text-slate-700 text-center">${s.name}</span>
+                </button>
+            `).join('');
+        }
+
+        function resetView() {
+            document.getElementById('sector-view').classList.add('hidden');
+            document.getElementById('dashboard-view').classList.remove('hidden');
+            document.getElementById('intro').style.display = 'block';
+            
+            // Reset Nav Styles
+            document.querySelectorAll('.sector-btn').forEach(b => {
+                b.classList.remove('sector-card-active', 'ring-2', 'ring-cyan-400');
+            });
+
+            // Re-render comparison chart
+            updateComparisonChart();
+        }
+
+        function updateComparisonChart() {
+            const idA = document.getElementById('sector-a').value;
+            const idB = document.getElementById('sector-b').value;
+
+            const sectorA = sectors.find(s => s.id === idA);
+            const sectorB = sectors.find(s => s.id === idB);
+
+            if (!sectorA || !sectorB) return;
+
+            const ctx = document.getElementById('mainComparisonChart').getContext('2d');
+            
+            if(mainChartInstance) mainChartInstance.destroy();
+
+            // Use '₹ Cr' as default unit, only use MW if both sectors are RE.
+            const unitA = sectorA.unit;
+            const unitB = sectorB.unit;
+            let displayUnit = (unitA === 'MW' && unitB === 'MW') ? 'MW (Estimated)' : '₹ Crores (Estimated)';
+
+            document.getElementById('chart-unit').textContent = `Unit: ${displayUnit}`;
+            
+            const labelA = sectorA.name.replace(' & ', '\n& ');
+            const labelB = sectorB.name.replace(' & ', '\n& ');
+
+            // Data extraction for comparison (2025 vs 2030 projection end points)
+            const data2025_A = sectorA.projection.data[0];
+            const data2030_A = sectorA.projection.data[sectorA.projection.data.length - 1];
+
+            const data2025_B = sectorB.projection.data[0];
+            const data2030_B = sectorB.projection.data[sectorB.projection.data.length - 1];
+
+            mainChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: [labelA, labelB],
+                    datasets: [
+                        {
+                            label: `2025 Status (${unitA}/${unitB})`,
+                            data: [data2025_A, data2025_B],
+                            backgroundColor: '#94a3b8', // slate-400
+                            borderRadius: 6
+                        },
+                        {
+                            label: `2030 Projection (${unitA}/${unitB})`,
+                            data: [data2030_A, data2030_B],
+                            backgroundColor: '#06b6d4', // cyan-600
+                            borderRadius: 6
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: { 
+                            mode: 'index', 
+                            intersect: false,
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        // Simple formatting, if MW use MW, otherwise use 'k' for Crores
+                                        let unit = context.dataIndex === 0 ? unitA : unitB;
+                                        if (unit === '₹ Cr') {
+                                            label += '₹' + (context.parsed.y/1000).toFixed(1) + 'k Cr';
+                                        } else {
+                                            label += context.parsed.y.toLocaleString() + ' MW';
+                                        }
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: { 
+                            beginAtZero: true, 
+                            grid: { color: '#f1f5f9' },
+                            ticks: {
+                                callback: function(value, index, ticks) {
+                                    // Use 'k' for Crores or just value for MW
+                                    if (displayUnit.includes('Crores')) {
+                                        return (value/1000).toFixed(0) + 'k';
+                                    }
+                                    return value.toLocaleString();
+                                }
+                            }
+                        },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+
+        function loadSector(id) {
+            const sector = sectors.find(s => s.id === id);
+            if (!sector) return;
+            
+            currentSectorId = id; // Set global state
+
+            // UI Transitions
+            document.getElementById('intro').style.display = 'none';
+            document.getElementById('dashboard-view').classList.add('hidden');
+            const sv = document.getElementById('sector-view');
+            sv.classList.remove('hidden');
+
+            // Highlight Nav
+            document.querySelectorAll('.sector-btn').forEach(b => {
+                b.classList.remove('sector-card-active', 'ring-2', 'ring-cyan-400');
+            });
+            document.getElementById(`btn-${id}`).classList.add('sector-card-active', 'ring-2', 'ring-cyan-400');
+
+            // Populate Content
+            document.getElementById('sv-title').innerText = `${sector.icon} ${sector.name}`;
+            document.getElementById('sv-desc').innerText = sector.desc;
+            
+            // Highlights
+            document.getElementById('sv-highlights').innerHTML = sector.highlights.map(h => 
+                `<li class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-cyan-500"></span>${h}</li>`
+            ).join('');
+
+            // Text Context
+            document.getElementById('sv-history-text').innerText = sector.history.text;
+            document.getElementById('sv-projection-text').innerText = sector.projection.text;
+            document.getElementById('sv-recommendation').innerText = `"${sector.recommendation}"`;
+
+            // Stats Grid
+            document.getElementById('sv-stats-grid').innerHTML = sector.stats.map(st => `
+                <div class="border-b border-slate-600 pb-2 last:border-0">
+                    <div class="text-slate-400 text-xs uppercase tracking-wider">${st.label}</div>
+                    <div class="text-2xl font-bold text-white">${st.value}</div>
+                </div>
+            `).join('');
+
+            // SWOT Lists
+            document.getElementById('sv-drivers').innerHTML = sector.drivers.map(d => `<li>${d}</li>`).join('');
+            document.getElementById('sv-challenges').innerHTML = sector.challenges.map(c => `<li>${c}</li>`).join('');
+
+            // Clear previous LLM results
+            document.getElementById('brief-content').innerText = '';
+            document.getElementById('policy-brief-output').classList.add('hidden');
+            document.getElementById('brief-sources').classList.add('hidden');
+            document.getElementById('source-list').innerHTML = '';
+
+            // Render Charts
+            renderSectorCharts(sector);
+            
+            // Scroll to top of content
+            document.getElementById('content-area').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function renderSectorCharts(sector) {
+            // History Chart
+            const ctxH = document.getElementById('historicalChart').getContext('2d');
+            if(histChartInstance) histChartInstance.destroy();
+
+            histChartInstance = new Chart(ctxH, {
+                type: 'line',
+                data: {
+                    labels: sector.history.labels,
+                    datasets: [{
+                        label: 'Growth Trend',
+                        data: sector.history.data,
+                        borderColor: '#0f766e', // teal-700
+                        backgroundColor: 'rgba(15, 118, 110, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { display: false }, 
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+
+            // Projection Chart
+            const ctxP = document.getElementById('projectionChart').getContext('2d');
+            if(projChartInstance) projChartInstance.destroy();
+
+            projChartInstance = new Chart(ctxP, {
+                type: 'bar',
+                data: {
+                    labels: sector.projection.labels,
+                    datasets: [{
+                        label: 'Projected Growth',
+                        data: sector.projection.data,
+                        backgroundColor: '#06b6d4', // cyan-500
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { 
+                            grid: { color: '#f1f5f9' },
+                            ticks: {
+                                callback: function(value) { return '₹' + (value/1000) + 'k'; }
+                            }
+                        }, 
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+        
+        // --- GEMINI API INTEGRATION LOGIC (Policy Brief) ---
+
+        function showLoading(isLoading) {
+            const button = document.getElementById('policy-brief-button');
+            const spinner = document.getElementById('brief-spinner');
+            const text = document.getElementById('brief-text');
+            
+            if (isLoading) {
+                button.disabled = true;
+                spinner.classList.remove('hidden');
+                text.textContent = 'Generating...';
+            } else {
+                button.disabled = false;
+                spinner.classList.add('hidden');
+                text.textContent = '✨ Draft Policy Brief for 2030';
+            }
+        }
+
+        async function callGeminiApi(payload, retries = 3, delay = 1000) {
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(BASE_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (response.ok) {
+                        return await response.json();
+                    } else if (response.status === 429 && i < retries - 1) {
+                        await new Promise(resolve => setTimeout(resolve, delay * (2 ** i)));
+                        continue;
+                    } else {
+                        throw new Error(`API call failed with status: ${response.status}`);
+                    }
+                } catch (error) {
+                    if (i < retries - 1) {
+                        await new Promise(resolve => setTimeout(resolve, delay * (2 ** i)));
+                        continue;
+                    }
+                    throw error;
+                }
+            }
+        }
+
+        async function generatePolicyBrief() {
+            if (!currentSectorId) return;
+
+            const sector = sectors.find(s => s.id === currentSectorId);
+            if (!sector) return;
+            
+            const recommendation = sector.recommendation;
+            const sectorName = sector.name;
+
+            const briefOutput = document.getElementById('policy-brief-output');
+            const briefContent = document.getElementById('brief-content');
+            const sourceDiv = document.getElementById('brief-sources');
+            const sourceList = document.getElementById('source-list');
+
+            briefContent.innerText = 'Analyzing data and drafting brief...';
+            briefOutput.classList.remove('hidden');
+            sourceDiv.classList.add('hidden');
+            sourceList.innerHTML = '';
+
+            try {
+                showLoading(true);
+
+                const systemPrompt = `You are a professional policy analyst for the Government of Bihar (India). Your task is to take a core recommendation for the ${sectorName} sector and draft a concise, professional policy brief (approx. 200 words). The brief must include a formal title, a statement of purpose, 3-4 actionable implementation steps (with timelines if possible), and projected economic impact figures based on your grounded knowledge. Output only the brief text.`;
+
+                const userQuery = `Draft a policy brief based on this core recommendation for the ${sectorName} sector in Bihar: "${recommendation}"`;
+
+                const payload = {
+                    contents: [{ parts: [{ text: userQuery }] }],
+                    tools: [{ "google_search": {} }],
+                    systemInstruction: { parts: [{ text: systemPrompt }] },
+                };
+
+                const result = await callGeminiApi(payload);
+
+                const candidate = result.candidates?.[0];
+
+                if (candidate && candidate.content?.parts?.[0]?.text) {
+                    const text = candidate.content.parts[0].text;
+                    briefContent.innerText = text;
+
+                    let sources = [];
+                    const groundingMetadata = candidate.groundingMetadata;
+
+                    if (groundingMetadata && groundingMetadata.groundingAttributions) {
+                        sources = groundingMetadata.groundingAttributions
+                            .map(attribution => ({
+                                uri: attribution.web?.uri,
+                                title: attribution.web?.title,
+                            }))
+                            .filter(source => source.uri && source.title);
+
+                        if (sources.length > 0) {
+                            sourceDiv.classList.remove('hidden');
+                            sources.forEach(s => {
+                                const li = document.createElement('li');
+                                li.innerHTML = `<a href="${s.uri}" target="_blank" class="text-blue-600 hover:underline">${s.title}</a>`;
+                                sourceList.appendChild(li);
+                            });
+                        }
+                    }
+                } else {
+                    briefContent.innerText = 'Error: Could not generate content. Please try again.';
+                }
+
+            } catch (error) {
+                briefContent.innerText = `Generation failed. Network or API error occurred: ${error.message}`;
+                briefOutput.classList.remove('hidden');
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        // --- NEW TTS UTILITIES ---
+        
+        function base64ToArrayBuffer(base64) {
+            const binaryString = atob(base64);
+            const len = binaryString.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            return bytes.buffer;
+        }
+
+        function pcmToWav(pcm16, sampleRate) {
+            const numChannels = 1;
+            const bitDepth = 16;
+            const bytesPerSample = bitDepth / 8;
+            const blockAlign = numChannels * bytesPerSample;
+            const byteRate = sampleRate * blockAlign;
+
+            const buffer = new ArrayBuffer(44 + pcm16.length * bytesPerSample);
+            const view = new DataView(buffer);
+            let offset = 0;
+
+            // RIFF chunk descriptor
+            writeString(view, offset, 'RIFF'); offset += 4;
+            view.setUint32(offset, 36 + pcm16.length * bytesPerSample, true); offset += 4; // ChunkSize
+            writeString(view, offset, 'WAVE'); offset += 4;
+
+            // FMT sub-chunk
+            writeString(view, offset, 'fmt '); offset += 4;
+            view.setUint32(offset, 16, true); offset += 4; // Subchunk1Size
+            view.setUint16(offset, 1, true); offset += 2; // AudioFormat (1=PCM)
+            view.setUint16(offset, numChannels, true); offset += 2; // NumChannels
+            view.setUint32(offset, sampleRate, true); offset += 4; // SampleRate
+            view.setUint32(offset, byteRate, true); offset += 4; // ByteRate
+            view.setUint16(offset, blockAlign, true); offset += 2; // BlockAlign
+            view.setUint16(offset, bitDepth, true); offset += 2; // BitsPerSample
+
+            // DATA sub-chunk
+            writeString(view, offset, 'data'); offset += 4;
+            view.setUint32(offset, pcm16.length * bytesPerSample, true); offset += 4; // Subchunk2Size
+
+            // PCM Data
+            for (let i = 0; i < pcm16.length; i++) {
+                view.setInt16(offset, pcm16[i], true);
+                offset += 2;
+            }
+
+            return new Blob([view], { type: 'audio/wav' });
+        }
+
+        function writeString(view, offset, string) {
+            for (let i = 0; i < string.length; i++) {
+                view.setUint8(offset + i, string.charCodeAt(i));
+            }
+        }
+        
+        // --- NEW TTS LOGIC ---
+        
+        function showAudioLoading(isLoading) {
+            const button = document.getElementById('audio-pitch-button');
+            const spinner = document.getElementById('audio-spinner');
+            const text = document.getElementById('audio-text');
+            const player = document.getElementById('audio-player');
+            const errorDiv = document.getElementById('audio-error');
+
+            if (isLoading) {
+                button.disabled = true;
+                spinner.classList.remove('hidden');
+                text.textContent = 'Synthesizing Audio...';
+                player.classList.add('hidden');
+                errorDiv.classList.add('hidden');
+            } else {
+                button.disabled = false;
+                spinner.classList.add('hidden');
+                text.textContent = '✨ Generate Audio Pitch (30s)';
+            }
+        }
+        
+        async function callGeminiTtsApi(payload, retries = 3, delay = 1000) {
+            const TTS_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${API_KEY}`;
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(TTS_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (response.ok) {
+                        return await response.json();
+                    } else if (response.status === 429 && i < retries - 1) {
+                        await new Promise(resolve => setTimeout(resolve, delay * (2 ** i)));
+                        continue;
+                    } else {
+                        throw new Error(`TTS API call failed with status: ${response.status}`);
+                    }
+                } catch (error) {
+                    if (i < retries - 1) {
+                        await new Promise(resolve => setTimeout(resolve, delay * (2 ** i)));
+                        continue;
+                    }
+                    throw error;
+                }
+            }
+        }
+
+        async function generateAudioPitch() {
+            if (!currentSectorId) return;
+
+            const sector = sectors.find(s => s.id === currentSectorId);
+            if (!sector) return;
+
+            const sectorName = sector.name;
+            const recommendation = sector.recommendation;
+
+            const audioPlayer = document.getElementById('audio-player');
+            const errorDiv = document.getElementById('audio-error');
+            audioPlayer.classList.add('hidden');
+            errorDiv.classList.add('hidden');
+
+            try {
+                showAudioLoading(true);
+
+                // Step 1: Use the main LLM to generate the text pitch first
+                const textPrompt = `Draft a concise, 30-second investment pitch (maximum 4 sentences) for the "${sectorName}" sector in Bihar. Focus on the 2030 projection, the key recommendation: "${recommendation}", and the high potential for growth.`;
+
+                const textPayload = {
+                    contents: [{ parts: [{ text: textPrompt }] }],
+                    tools: [{ "google_search": {} }],
+                    systemInstruction: { parts: [{ text: "You are a highly enthusiastic pitch deck narrator. Do not use any introductory phrases like 'The pitch is...', just output the narration text." }] },
+                };
+
+                const textResult = await callGeminiApi(textPayload);
+                const pitchText = textResult.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                if (!pitchText) {
+                    throw new Error("Failed to generate pitch text.");
+                }
+                
+                // Step 2: Call the TTS API with the generated text
+                const ttsPayload = {
+                    contents: [{ parts: [{ text: `Say with a bright, professional tone: ${pitchText}` }] }],
+                    generationConfig: {
+                        responseModalities: ["AUDIO"],
+                        speechConfig: {
+                            voiceConfig: {
+                                prebuiltVoiceConfig: { voiceName: "Achird" } // Friendly and Forward voice
+                            }
+                        }
+                    },
+                    model: "gemini-2.5-flash-preview-tts"
+                };
+
+                const ttsResult = await callGeminiTtsApi(ttsPayload);
+                
+                const part = ttsResult?.candidates?.[0]?.content?.parts?.[0];
+                const audioData = part?.inlineData?.data;
+                const mimeType = part?.inlineData?.mimeType;
+
+                if (audioData && mimeType && mimeType.startsWith("audio/L16")) {
+                    const sampleRate = 24000; // Expected sample rate for this model's PCM output
+                    const pcmData = base64ToArrayBuffer(audioData);
+                    const pcm16 = new Int16Array(pcmData);
+                    
+                    const wavBlob = pcmToWav(pcm16, sampleRate);
+                    const audioUrl = URL.createObjectURL(wavBlob);
+
+                    audioPlayer.src = audioUrl;
+                    audioPlayer.classList.remove('hidden');
+                    audioPlayer.play();
+                } else {
+                    throw new Error("Invalid TTS audio format or missing data.");
+                }
+
+            } catch (error) {
+                console.error("Audio generation error:", error);
+                errorDiv.innerText = `Error: Audio generation failed. ${error.message}`;
+                errorDiv.classList.remove('hidden');
+            } finally {
+                showAudioLoading(false);
+            }
+        }
+
+    </script>
+</body>
+</html>
